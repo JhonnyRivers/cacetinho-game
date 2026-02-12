@@ -10,6 +10,10 @@ KCT_ThirdPersonController.kGroundingDot = 0.9
 function KCT_ThirdPersonController:Create()
 
     -- Properties
+
+    self.score = 0
+    self.highScore = 0
+
     self.collider = nil
     self.camera = nil
     self.cameraPivot = nil

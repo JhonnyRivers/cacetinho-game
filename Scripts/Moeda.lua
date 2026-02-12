@@ -9,7 +9,10 @@ end
 function Moeda:Interact()
 
     if (self.coin) then
-        
+
+        local C_CON = self:GetParent()
+        KCT_ThirdPersonController:SetScore(KCT_ThirdPersonController:GetScore() + 1)
+
         self.coin:SetVisible(not self.coin:IsVisible())
     else
         Log.Warning("No coin assigned to switch")
