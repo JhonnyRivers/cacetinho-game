@@ -12,7 +12,7 @@ function KCT_ThirdPersonController:Create()
     -- Properties
 
     self.score = 0
-    self.highScore = 0
+
 
     self.collider = nil
     self.camera = nil
@@ -49,6 +49,20 @@ function KCT_ThirdPersonController:Create()
     self.moveVelocity = Vec()
     self.meshYaw = 0.0
 
+    -- Sistema de Som de Passos
+    self.footstepSound = S_Andar  -- SoundWave asset para passos normais
+    self.footstepAudioNode = nil  -- No Audio3D para reproduzir sons
+    self.footstepInterval = 0.5  -- Intervalo entre passos (em segundos) quando andando
+    self.footstepTimer = 0.0
+    self.crouchFootstepMultiplier = 1.5  -- Multiplicador de intervalo ao agachar (mais lento)
+    self.crouchPitchMultiplier = 0.8  -- Tom mais baixo ao agachar
+    self.normalPitch = 1.0
+    self.footstepVolume = 0.7
+    self.isMoving = false
+
+    self.footstepSound = LoadAsset('01gen_footstep')
+    self.footstepSound2 = LoadAsset('02gen_footstep')
+
 end
 
 function KCT_ThirdPersonController:GatherProperties()
@@ -76,6 +90,12 @@ function KCT_ThirdPersonController:GatherProperties()
         { name = "enableFollowCam", type = DatumType.Bool },
         { name = "enableCameraTrace", type = DatumType.Bool },
         { name = "mouseSensitivity", type = DatumType.Float },
+
+        { name = "footstepInterval", type = DatumType.Float },
+        { name = "crouchFootstepMultiplier", type = DatumType.Float },
+        { name = "crouchPitchMultiplier", type = DatumType.Float },
+        { name = "footstepVolume", type = DatumType.Float },
+        
     }
 
 end
@@ -97,9 +117,106 @@ function KCT_ThirdPersonController:Start()
     end
 
     --acha o node chamado scoretext
-    self.scoreText = self.world:FindNode("scoreText")
+    self.ScoreText = self.world:FindNode("ScoreText")
+
+    if not self.footstepSound then
+        Log.Error("FootstepSound nao definido., som de passos desativado.")
+    end
+
+    -- Configurar no de oudio para passos
+    self:SetupFootstepAudio()
 
 end
+
+function KCT_ThirdPersonController:SetupFootstepAudio()
+    -- Procura por um nó Audio3D existente ou cria um novo
+    self.footstepAudioNode = self.collider:FindChild("FootstepAudio", true)
+    
+    if not self.footstepAudioNode then
+        -- Cria um novo nó Audio3D se não existir
+        self.footstepAudioNode = self.collider:CreateChild("Audio3D")
+        self.footstepAudioNode:SetName("FootstepAudio")
+    end
+    
+    if self.footstepAudioNode and self.footstepSound then
+        self.footstepAudioNode:SetSoundWave(self.footstepSound)
+        self.footstepAudioNode:SetLoop(false)
+        self.footstepAudioNode:SetAutoPlay(false)
+        self.footstepAudioNode:SetVolume(self.footstepVolume)
+        self.footstepAudioNode:SetPitch(self.normalPitch)
+        -- Configurar raios para som 3D (ajuste conforme necessário)
+        self.footstepAudioNode:SetInnerRadius(1.0)
+        self.footstepAudioNode:SetOuterRadius(15.0)
+    end
+end
+
+function KCT_ThirdPersonController:UpdateFootsteps(deltaTime)
+    
+    if not self.footstepAudioNode or not self.footstepSound then
+        return
+    end
+
+    --antiga movimentação por detecção de input
+    --local isMovingNow = self.moveDir:Magnitude() > 0.1
+
+    -- Detecta se está se movendo baseado na movimentação do controlador
+    local horizontalVel = Vec(self.moveVelocity.x + self.extVelocity.x, 0, self.moveVelocity.z + self.extVelocity.z)
+    local isMovingNow = horizontalVel:Magnitude() > 0.2
+
+    
+    -- Só reproduz sons se estiver no chão e se movendo
+    if self.grounded and isMovingNow then
+        self.footstepTimer = self.footstepTimer + deltaTime
+        
+        -- Calcula o intervalo baseado no estado de agachamento ou do estado de corrida
+        local currentInterval = self.footstepInterval
+        if self.isCrouching then
+            currentInterval = currentInterval * self.crouchFootstepMultiplier
+
+        elseif self.isSprinting then
+            currentInterval = currentInterval * self.sprintFootstepMultiplier
+        end
+        
+        -- Chegou a hora de tocar outro passo
+        if self.footstepTimer >= currentInterval then
+            self:PlayFootstepSound()
+            self.footstepTimer = 0.0
+        end
+    else
+        -- Reseta quase cheio para o próximo passo sair rápido
+        self.footstepTimer = self.footstepInterval * 0.8
+    end
+    
+    self.isMoving = isMovingNow
+end
+
+--som de passos
+function KCT_ThirdPersonController:PlayFootstepSound()
+    
+    if not self.footstepAudioNode then
+        return
+    end
+    
+    -- Ajusta o pitch baseado no estado de agachamento ou de corrida
+    local pitch = self.normalPitch
+    if self.isCrouching then
+        pitch = self.normalPitch * self.crouchPitchMultiplier
+
+    elseif self.isSprinting then
+        pitch = self.normalPitch * 1.15
+    end
+    
+    self.footstepAudioNode:SetPitch(pitch)
+    
+    -- Para o som anterior se ainda estiver tocando e toca um novo
+    if self.footstepAudioNode:IsPlaying() then
+        self.footstepAudioNode:StopAudio()
+    end
+    
+    self.footstepAudioNode:PlayAudio()
+end
+
+
 
 function KCT_ThirdPersonController:Stop()
 
@@ -118,6 +235,7 @@ function KCT_ThirdPersonController:Tick(deltaTime)
     self:UpdateGrounding(deltaTime)
     self:UpdateCamera(deltaTime)
     self:UpdateMesh(deltaTime)
+    self:UpdateFootsteps(deltaTime)
 
 end
 
@@ -219,6 +337,9 @@ function KCT_ThirdPersonController:UpdateDrag(deltaTime)
             self.moveVelocity = updateDrag(self.moveVelocity, self.moveDrag)
         end
         self.extVelocity = updateDrag(self.extVelocity, self.extDrag)
+        
+
+        
     end
 
 end
@@ -424,6 +545,7 @@ function KCT_ThirdPersonController:Jump()
         self.mesh:StopAnimation("Fall")
         self.mesh:PlayAnimation("Jump", 1, false)
         self.mesh:QueueAnimation("Fall", "Jump", 0, true, 1, 1)
+        self:PlayFootstepSound()
     end
 
 end
@@ -443,6 +565,7 @@ function KCT_ThirdPersonController:SetGrounded(grounded)
             self.extVelocity.y = 0.0
             self.timeSinceGrounded = 0.0
             self.isJumping = false
+            self:PlayFootstepSound()
         end
     end
 end
@@ -456,13 +579,15 @@ end
 --sistema de pontuation do jogadore
 function KCT_ThirdPersonController:SetScore(newScore)
 
-    self.score = newScore
-    self.scoreText:SetText(tostring(self.score))
+    self.Score = newScore
+    self.ScoreText:SetText(tostring(self.Score))
 end
+
+
 
 --verificar pontuatione
 function KCT_ThirdPersonController:GetScore()
 
-    return self.score
+    return self.Score
 
 end
