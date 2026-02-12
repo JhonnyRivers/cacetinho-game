@@ -2,8 +2,7 @@ Trigger_MudarFase = {}
 
 function Trigger_MudarFase:Create()
 
-    self.box = Property.Create(DatumType.Node, nil)
-    self.LoadNextScene = Property.Create(DatumType.String, nil)
+    self.LoadNextScene = Property.Create(DatumType.String, "SC_lab02")
 
 end
 
