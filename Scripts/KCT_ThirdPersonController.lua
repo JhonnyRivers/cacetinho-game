@@ -92,6 +92,9 @@ function KCT_ThirdPersonController:Start()
         self.camera = self.collider:FindChild("Camera", true)
     end
 
+    --acha o node chamado scoretext
+    self.scoreText = self.world:FindNode("scoreText")
+
 end
 
 function KCT_ThirdPersonController:Stop()
@@ -444,4 +447,18 @@ function KCT_ThirdPersonController:GetCameraYaw()
     return self.enableFollowCam and
         self.camera:GetRotation().y or
         self.cameraPivot:GetRotation().y
+end
+
+--sistema de pontuation do jogadore
+function KCT_ThirdPersonController:SetScore(newScore)
+
+    self.score = newScore
+    self.scoreText:SetText(tostring(self.score))
+end
+
+--verificar pontuatione
+function KCT_ThirdPersonController:GetScore()
+
+    return self.score
+
 end
