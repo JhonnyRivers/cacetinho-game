@@ -4,6 +4,7 @@ function ASS_ObjectSpawner:Create()
 
 
     self.objetosAtivos = 0
+    self.quantidadePermitida = 25
 
 end
 
@@ -12,7 +13,6 @@ function ASS_ObjectSpawner:GatherProperties()
     return
     {
         { name = "spawnPoint", type = DatumType.Node },
-        { name = "quantidadePermitida", type = DatumType.Integer, },
         
     }
 
