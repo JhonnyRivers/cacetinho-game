@@ -39,5 +39,7 @@ function Menu_Principal:Start()
         Engine.Quit()
     end
 
+    Input.IsGamepadPressed(Gamepad.Home)
+
 
 end 

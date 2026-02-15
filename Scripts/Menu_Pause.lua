@@ -62,7 +62,7 @@ end
 
 function Menu_Pause:UpdateInput(deltaTime)
 
-    if Input.IsKeyPressed(self.PauseMenuKey) or Input.IsKeyPressed(Key.P) then
+    if Input.IsKeyPressed(self.PauseMenuKey) or Input.IsKeyPressed(Key.P) or Input.IsGamepadPressed(Gamepad.Start) then
         
         self.Menu_PauseAberto = not self.Menu_PauseAberto
         Engine.SetPaused(self.Menu_PauseAberto)
