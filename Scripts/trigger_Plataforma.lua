@@ -8,6 +8,8 @@ function trigger_Plataforma:Create()
     self.inicio = false
     self.progresso = 0
     self.emMovimento = false
+    self.trajetoSentido = 0
+    self.pontoOrigem = Vec()
 end
 
 function trigger_Plataforma:GatherPropeties()
@@ -20,14 +22,15 @@ function trigger_Plataforma:GatherPropeties()
         { name = "velocidade", type = DatumType.Float},
         { name = "inicio", type = DatumType.Bool},
         { name = "progresso", type = DatumType.Float},
-        { name = "emMovimento", type = DatumType.Bool},
+        { name = "emMovimento", type = DatumType.Bool}
 
     }
 
 end
 
 function trigger_Plataforma:Start()
-    self.origin = self.plataforma:GetWorldPosition()
+    self.plataforma = self:GetParent()
+    self.pontoOrigem = self.plataforma:GetWorldPosition()
 
     local direcao = self.direcaoXZ
     direcao.y = 0
@@ -42,29 +45,45 @@ end
 
 function trigger_Plataforma:Tick(deltatime)
 
-    if not self.moving then
+    if not self.emMovimento then
         return
     end
 
     -- advance offset
-    self.offset = self.offset + (self.sign * self.velocidade * dt)
+    self.progresso = self.progresso + (self.trajetoSentido * self.velocidade * deltatime)
 
     -- clamp & flip direction at ends
-    if self.offset > self.halfDistance then
-        self.offset = self.halfDistance
-        self.sign = -1
-    elseif self.offset < -self.halfDistance then
-        self.offset = -self.halfDistance
-        self.sign = 1
+    if self.progresso > self.distancia then
+        self.progresso = self.distancia
+        self.trajetoSentido = -1
+    elseif self.progresso < -self.distancia then
+        self.progresso = -self.distancia
+        self.trajetoSentido = 1
     end
 
     -- compute new world position (keep original Y)
-    local newPos = Vec(
-        self.origin.x + (self.dir.x * self.offset),
-        self.origin.y,
-        self.origin.z + (self.dir.z * self.offset)
+    local novaPosicao = Vec(
+        self.pontoOrigem.x + (self.direcaoXZ.x * self.progresso),
+        self.pontoOrigem.y,
+        self.pontoOrigem.z + (self.pontoOrigem.z * self.progresso)
     )
 
-    self.node:SetWorldPosition(newPos)
+    self.plataforma:SetWorldPosition(novaPosicao)
 
+end
+
+function trigger_Plataforma:Ativo()
+    self.emMovimento = true
+end
+
+function trigger_Plataforma:Inativo()
+    self.emMovimento = false
+end
+
+function trigger_Plataforma:ehAtivo()
+    return self.emMovimento
+end
+
+function trigger_Plataforma:Interact()
+    self.emMovimento = not self.emMovimento
 end
