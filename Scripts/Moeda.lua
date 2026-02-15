@@ -2,21 +2,19 @@ Moeda = {}
 
 function Moeda:Create()
 
-    self.coinMesh = Property.Create(DatumType.Node, nil)
+    self.coin = Property.Create(DatumType.Node, nil)
 
 end
 
 function Moeda:BeginOverlap(thisNode, otherNode)
-
     if (otherNode:HasTag("Player")) then
+        -- Get the parent node
+        local parent = self:GetParent()
+        -- Remove the coin from the parent's children
+        parent:RemoveChild(self)
 
-        local C_CON = self:GetParent()
+        -- Update the score (assuming KCT_ThirdPersonController is a global variable)
         KCT_ThirdPersonController:SetScore(KCT_ThirdPersonController:GetScore() + 1)
-
-        self.coinMesh:SetVisible(not self.coin:IsVisible())
-    else
-        Log.Warning("No coin assigned to switch")
     end
-
 
 end

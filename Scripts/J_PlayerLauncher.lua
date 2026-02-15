@@ -9,6 +9,7 @@ end
 function J_PlayerLauncher:BeginOverlap(thisNode, otherNode)
 
     if (otherNode:HasTag("Player")) then
+        print("moeda!!!")
         local controller = otherNode:FindChildWithTag("Controller")
         if (controller) then
             controller.extVelocity.y = math.max(controller.extVelocity.y, self.launchSpeed);
